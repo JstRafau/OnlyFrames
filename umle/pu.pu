@@ -1,0 +1,49 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Użytkownik" as User
+actor "Gość\n(link publiczny)" as Guest
+actor "FFmpeg" as FFmpeg
+
+rectangle "Platforma streamingowa" {
+
+    usecase "Rejestracja" as UC_Register
+    usecase "Logowanie" as UC_Login
+
+    usecase "Wgrywanie filmu" as UC_Upload
+    usecase "Tagowanie filmu" as UC_Tag
+    usecase "Zarządzanie filmami" as UC_Manage
+    usecase "Usuwanie filmu" as UC_Delete
+    usecase "Ustawienie prywatności\nfilmu" as UC_Privacy
+    usecase "Generowanie linku\nudostępniania" as UC_Share
+
+    usecase "Dodawanie napisów\n(SRT)" as UC_Subtitles
+
+    usecase "Odtwarzanie filmu" as UC_Play
+
+    usecase "Automatyczna konwersja\nfilmu" as UC_Convert
+
+    usecase "Przeglądanie własnych\nfilmów" as UC_Browse
+}
+
+User --> UC_Register
+User --> UC_Login
+
+User --> UC_Upload
+User --> UC_Tag
+User --> UC_Manage
+User --> UC_Delete
+User --> UC_Privacy
+User --> UC_Share
+User --> UC_Subtitles
+User --> UC_Play
+User --> UC_Browse
+
+Guest --> UC_Play
+
+UC_Upload .> UC_Convert : <<include>>
+
+FFmpeg --> UC_Convert
+
+@enduml

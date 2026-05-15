@@ -1,0 +1,56 @@
+@startuml
+
+start
+
+if (Użytkownik zalogowany?) then (Tak)
+
+    :Wyświetlenie panelu użytkownika;
+
+    if (Akcja użytkownika?) then (Wgranie filmu)
+
+        :Wybór pliku wideo;
+        :Przesłanie filmu na serwer;
+        :Konwersja filmu przez FFmpeg;
+        :Zapis informacji o filmie w bazie danych;
+
+        if (Dodać tagi?) then (Tak)
+            :Dodanie tagów;
+        endif
+
+        if (Dodać napisy?) then (Tak)
+            :Wgranie pliku SRT;
+        endif
+
+        :Ustawienie prywatności filmu;
+
+        if (Udostępnić link?) then (Tak)
+            :Generowanie linku udostępniania;
+        endif
+
+    elseif (Zarządzanie filmami)
+
+        :Wyświetlenie listy filmów;
+
+        if (Usunąć film?) then (Tak)
+            :Usunięcie filmu;
+        else (Nie)
+            :Edycja danych filmu;
+        endif
+
+    elseif (Odtwarzanie filmu)
+
+        :Wybór filmu;
+        :Odtworzenie filmu;
+
+    endif
+
+else (Nie)
+
+    :Otwarcie publicznego filmu;
+    :Odtworzenie filmu;
+
+endif
+
+stop
+
+@enduml

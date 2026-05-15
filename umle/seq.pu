@@ -1,0 +1,40 @@
+@startuml
+
+actor Użytkownik
+actor Gość
+participant "Frontend (WWW)" as FE
+participant "Backend API" as API
+participant "Baza danych" as DB
+participant "FFmpeg" as FFMPEG
+
+== Logowanie (opcjonalne) ==
+Użytkownik -> FE: logowanie / brak logowania
+FE -> API: request sesji (opcjonalnie)
+API -> DB: weryfikacja użytkownika
+DB --> API: dane użytkownika / null
+API --> FE: status (zalogowany / gość)
+
+== Wgrywanie filmu (tylko użytkownik) ==
+Użytkownik -> FE: upload filmu
+FE -> API: wysyłka pliku + metadata
+API -> DB: zapis rekordu filmu
+API -> FFMPEG: konwersja filmu
+FFMPEG --> API: gotowy plik
+API -> DB: aktualizacja statusu filmu
+API --> FE: sukces
+
+== Odtwarzanie filmu (publiczne) ==
+Gość -> FE: wejście na stronę filmu
+FE -> API: pobranie danych filmu
+API -> DB: pobranie filmu + dostępność
+DB --> API: dane filmu
+
+alt film publiczny
+    API --> FE: dane + URL do odtwarzania
+    FE -> Gość: odtwarzanie filmu
+else film prywatny
+    API --> FE: brak dostępu
+    FE -> Gość: komunikat "brak dostępu"
+end
+
+@enduml
