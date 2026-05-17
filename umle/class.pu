@@ -1,0 +1,69 @@
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+
+title Diagram Klas - Platforma Streamingowa (.NET)
+
+' --- ENUMY ---
+enum PrivacyLevel {
+  Public
+  Private
+  Unlisted ' Dla opcji "Udostępnij link"
+}
+
+enum VideoStatus {
+  Uploaded
+  Converting ' Podczas pracy FFmpeg
+  Ready
+  Error
+}
+
+' --- KLASY (ENCJE) ---
+class User {
+  + Guid Id
+  + string Email
+  + string PasswordHash
+  + DateTime CreatedAt
+  -- Nawigacje EF Core --
+  + ICollection<Video> Videos
+}
+
+class Video {
+  + Guid Id
+  + string Title
+  + string Description
+  + string OriginalFilePath
+  + string ConvertedStreamUrl
+  + VideoStatus Status
+  + PrivacyLevel Privacy
+  + string ShareToken ' Do generowania publicznego linku
+  + DateTime UploadedAt
+  + Guid UserId
+  -- Nawigacje EF Core --
+  + User Owner
+  + ICollection<Tag> Tags
+  + ICollection<Subtitle> Subtitles
+}
+
+class Tag {
+  + Guid Id
+  + string Name
+  -- Nawigacje EF Core --
+  + ICollection<Video> Videos
+}
+
+class Subtitle {
+  + Guid Id
+  + string LanguageCode ' np. "pl", "en"
+  + string SrtFilePath
+  + Guid VideoId
+  -- Nawigacje EF Core --
+  + Video Video
+}
+
+' --- RELACJE ---
+User "1" --> "*" Video : "wgrywa i zarządza >"
+Video "1" *-- "*" Subtitle : "posiada napisy >"
+Video "*" <--> "*" Tag : "jest opisany przez >"
+
+@enduml
