@@ -39,8 +39,7 @@ api.MapGet("weatherforecast", () =>
     .WithName("GetWeatherForecast");
 
 app.MapDefaultEndpoints();
-
-app.UseFileServer();
+app.MapHealthChecks("/health");
 
 app.Run();
 
