@@ -1,9 +1,14 @@
 using Microsoft.Extensions.FileProviders;
 using OnlyFrames.Server.Endpoints;
 using OnlyFrames.Server.Models;
+using Microsoft.AspNetCore.Http.Features;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 524288000; });
+
+builder.Services.Configure<FormOptions>(options => { options.MultipartBodyLengthLimit = 524288000; });
 
 builder.AddNpgsqlDbContext<AppDbContext>("appdb");
 
@@ -53,8 +58,18 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/captions"
 });
 
+var thumbnailsPath = "/media/thumbnails";
+if (!Directory.Exists(thumbnailsPath)) Directory.CreateDirectory(thumbnailsPath);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(thumbnailsPath),
+    RequestPath = "/thumbnails"
+});
+
 app.MapRegisterEndpoints();
 app.MapLoginEndpoints();
 app.MapProfileEndpoints();
+app.MapVideoEndpoints();
 
 app.Run();
