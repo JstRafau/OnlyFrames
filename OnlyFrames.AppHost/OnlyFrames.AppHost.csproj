@@ -15,6 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
+		<EnvironmentVariable Include="DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS" Value="true" />
         <PackageReference Include="Aspire.Hosting.Docker" Version="13.3.5" />
         <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.3.5" />
         <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.3.5" />
