@@ -1,0 +1,10 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\OnlyFrames.AppHost",
+    "\\OnlyFrames.Server",
+    "\\OnlyFrames.Server\\Models"
+  ],
+  "SelectedNode": "\\OnlyFrames.Server\\Models\\AppDbContext.cs",
+  "PreviewInSolutionExplorer": false
+}
