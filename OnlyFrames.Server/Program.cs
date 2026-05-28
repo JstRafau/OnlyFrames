@@ -1,49 +1,60 @@
+using Microsoft.Extensions.FileProviders;
+using OnlyFrames.Server.Endpoints;
+using OnlyFrames.Server.Models;
+
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add service defaults & Aspire client integrations.
-builder.AddServiceDefaults();
+builder.AddNpgsqlDbContext<AppDbContext>("appdb");
 
-// Add services to the container.
-builder.Services.AddProblemDetails();
-
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddAuthorization();
+builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
+    .AddEntityFrameworkStores<AppDbContext>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-app.UseExceptionHandler();
+app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
-if (app.Environment.IsDevelopment())
+var avatarsPath = "/media/avatars";
+var videosPath = "/media/videos";
+var captionsPath = "/media/captions";
+
+if (!Directory.Exists(avatarsPath)) Directory.CreateDirectory(avatarsPath);
+if (!Directory.Exists(videosPath)) Directory.CreateDirectory(videosPath);
+if (!Directory.Exists(captionsPath)) Directory.CreateDirectory(captionsPath);
+
+var targetDefaultAvatar = Path.Combine(avatarsPath, "default_avatar.png");
+if (!File.Exists(targetDefaultAvatar))
 {
-    app.MapOpenApi();
+    var sourceDefaultAvatar = Path.Combine(AppContext.BaseDirectory, "Assets", "default_avatar.png");
+    if (File.Exists(sourceDefaultAvatar))
+    {
+        File.Copy(sourceDefaultAvatar, targetDefaultAvatar);
+    }
 }
 
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(avatarsPath),
+    RequestPath = "/avatars"
+});
 
-string[] summaries =
-    ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(videosPath),
+    RequestPath = "/videos"
+});
 
-var api = app.MapGroup("/api");
-api.MapGet("weatherforecast", () =>
-    {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast");
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(captionsPath),
+    RequestPath = "/captions"
+});
 
-app.MapDefaultEndpoints();
-app.MapHealthChecks("/health");
+app.MapRegisterEndpoints();
+app.MapLoginEndpoints();
+app.MapProfileEndpoints();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

@@ -10,14 +10,16 @@ var db = builder.AddPostgres("postgres")
  
 var videosPath = builder.Configuration["Volumes:Videos"] ?? "/opt/onlyframes/videos";
 var captionsPath = builder.Configuration["Volumes:Captions"] ?? "/opt/onlyframes/captions";
- 
+var avatarsPath = builder.Configuration["Volumes:Avatars"] ?? "/opt/onlyframes/avatars";
+
 var api = builder.AddDockerfile("api", "../OnlyFrames.Server")
     .WithReference(db)
     .WaitFor(db)
     .WithEndpoint(port: 8080, targetPort: 8080, name: "http", scheme: "http", isExternal: false)
     .WithHttpHealthCheck("/health")
     .WithBindMount(videosPath, "/media/videos")
-    .WithBindMount(captionsPath, "/media/captions"); 
+    .WithBindMount(captionsPath, "/media/captions") 
+    .WithBindMount(avatarsPath, "/media/avatars"); 
 
 var frontend = builder.AddViteApp("frontend", "../frontend")
     .WithReference(api.GetEndpoint("http"))
