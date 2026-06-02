@@ -1,5 +1,7 @@
 /* CSS Variables for theming */
 :root {
+  margin: 0;
+  padding: 0;
   --bg-gradient-start: #1a1a2e;
   --bg-gradient-end: #16213e;
   --card-bg: rgba(30, 30, 46, 0.95);
@@ -61,7 +63,7 @@
 
 /* Root container */
 #root {
-  width: 100%;
+  width: 100vh;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
