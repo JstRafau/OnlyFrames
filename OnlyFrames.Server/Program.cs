@@ -1,5 +1,6 @@
 using Microsoft.Extensions.FileProviders;
 using OnlyFrames.Server.Endpoints;
+using OnlyFrames.Server.Infrastructure;
 using OnlyFrames.Server.Models;
 
 
@@ -7,9 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddNpgsqlDbContext<AppDbContext>("appdb");
 
+await FFmpegSetup.InitializeAsync();
+
 builder.Services.AddAuthorization();
-builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
-    .AddEntityFrameworkStores<AppDbContext>();
+builder.Services.AddIdentityApiEndpoints<ApplicationUser>().AddEntityFrameworkStores<AppDbContext>();
+builder.Services.AddSingleton<TranscodingService>();
+builder.Services.AddSingleton<TranscodeQueue>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<TranscodeQueue>());
 
 var app = builder.Build();
 
@@ -43,12 +48,6 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(videosPath),
-    RequestPath = "/videos"
-});
-
-app.UseStaticFiles(new StaticFileOptions
-{
     FileProvider = new PhysicalFileProvider(captionsPath),
     RequestPath = "/captions"
 });
@@ -56,5 +55,6 @@ app.UseStaticFiles(new StaticFileOptions
 app.MapRegisterEndpoints();
 app.MapLoginEndpoints();
 app.MapProfileEndpoints();
+app.MapStreamEndpoints();
 
 app.Run();
