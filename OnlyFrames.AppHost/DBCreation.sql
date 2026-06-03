@@ -1,3 +1,7 @@
+CREATE DATABASE appdb;
+
+\c appdb;
+
 DROP TABLE IF EXISTS "Users";
 DROP TABLE IF EXISTS "Videos";
 
