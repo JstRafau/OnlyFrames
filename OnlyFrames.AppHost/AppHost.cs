@@ -6,9 +6,10 @@ builder.AddDockerComposeEnvironment("env");
 
 var db = builder.AddPostgres("postgres")
     .WithDataVolume("postgres-data")
+    .WithBindMount("E:\\projects\\.NET project\\OnlyFrames\\OnlyFrames.AppHost.DBCreation.sql", "/docker-entrypoint-initdb.d/DBcreation.sql")
     .AddDatabase("appdb");
 
- 
+
 var videosPath = builder.Configuration["Volumes:Videos"] ?? "/opt/onlyframes/videos";
 var captionsPath = builder.Configuration["Volumes:Captions"] ?? "/opt/onlyframes/captions";
 var avatarsPath = builder.Configuration["Volumes:Avatars"] ?? "/opt/onlyframes/avatars";
