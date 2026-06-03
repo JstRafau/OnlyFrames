@@ -25,11 +25,9 @@ app.UseAuthorization();
 
 var avatarsPath = "/media/avatars";
 var videosPath = "/media/videos";
-var captionsPath = "/media/captions";
 
 if (!Directory.Exists(avatarsPath))  Directory.CreateDirectory(avatarsPath);
 if (!Directory.Exists(videosPath))   Directory.CreateDirectory(videosPath);
-if (!Directory.Exists(captionsPath)) Directory.CreateDirectory(captionsPath);
 
 var targetDefaultAvatar = Path.Combine(avatarsPath, "default_avatar.png");
 if (!File.Exists(targetDefaultAvatar))
