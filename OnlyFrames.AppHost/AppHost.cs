@@ -3,10 +3,11 @@ using Microsoft.Extensions.DependencyInjection;
 var builder = DistributedApplication.CreateBuilder(args);
  
 builder.AddDockerComposeEnvironment("env");
- 
+
 var db = builder.AddPostgres("postgres")
     .WithDataVolume("postgres-data")
     .AddDatabase("appdb");
+
  
 var videosPath = builder.Configuration["Volumes:Videos"] ?? "/opt/onlyframes/videos";
 var captionsPath = builder.Configuration["Volumes:Captions"] ?? "/opt/onlyframes/captions";
