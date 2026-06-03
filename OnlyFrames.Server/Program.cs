@@ -4,11 +4,12 @@ using OnlyFrames.Server.Infrastructure;
 using OnlyFrames.Server.Models;
 
 
+await FFmpegSetup.InitializeAsync();
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddNpgsqlDbContext<AppDbContext>("appdb");
 
-await FFmpegSetup.InitializeAsync();
 
 builder.Services.AddAuthorization();
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>().AddEntityFrameworkStores<AppDbContext>();
@@ -26,8 +27,8 @@ var avatarsPath = "/media/avatars";
 var videosPath = "/media/videos";
 var captionsPath = "/media/captions";
 
-if (!Directory.Exists(avatarsPath)) Directory.CreateDirectory(avatarsPath);
-if (!Directory.Exists(videosPath)) Directory.CreateDirectory(videosPath);
+if (!Directory.Exists(avatarsPath))  Directory.CreateDirectory(avatarsPath);
+if (!Directory.Exists(videosPath))   Directory.CreateDirectory(videosPath);
 if (!Directory.Exists(captionsPath)) Directory.CreateDirectory(captionsPath);
 
 var targetDefaultAvatar = Path.Combine(avatarsPath, "default_avatar.png");
@@ -46,15 +47,10 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/avatars"
 });
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(captionsPath),
-    RequestPath = "/captions"
-});
-
 app.MapRegisterEndpoints();
 app.MapLoginEndpoints();
 app.MapProfileEndpoints();
+app.MapVideoEndpoints();
 app.MapStreamEndpoints();
 
 app.Run();

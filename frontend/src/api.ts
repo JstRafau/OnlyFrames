@@ -3,12 +3,14 @@ const BASE = "/api";
 export interface Video {
     id: string;
     title: string;
+    description: string;
+    isPublic: boolean;
     status: "transcoding" | "ready" | "failed";
     createdAt: string;
 }
 
 export async function getVideos(): Promise<Video[]> {
-    const res = await fetch(`${BASE}/videos`);
+    const res = await fetch(`${BASE}/videos/all`);
     if (!res.ok) throw new Error(await res.text());
     return res.json();
 }
@@ -36,11 +38,10 @@ export async function uploadVideo(
 }
 
 export async function deleteVideo(id: string): Promise<void> {
-    const res = await fetch(`${BASE}/videos/${id}`, { method: "DELETE" });
+    const res = await fetch(`${BASE}/videos/remove/${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error(await res.text());
 }
 
 export function streamUrl(id: string): string {
-    return `${BASE}/videos/${id}/stream/`;
+    return `${BASE}/videos/stream/${id}/`;
 }
- 
