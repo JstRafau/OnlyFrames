@@ -4,11 +4,8 @@ var builder = DistributedApplication.CreateBuilder(args);
  
 builder.AddDockerComposeEnvironment("env");
 
-var sqlPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../DBCreation.sql"));
-
 var db = builder.AddPostgres("postgres")
-    .WithDataVolume("postgres-data")
-    .WithBindMount(sqlPath, "/docker-entrypoint-initdb.d/DBCreation.sql")
+    .WithDataVolume("onlyframes-data-v2")
     .AddDatabase("appdb");
 
 var videosPath = builder.Configuration["Volumes:Videos"] ?? "/opt/onlyframes/videos";

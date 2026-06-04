@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddNpgsqlDbContext<AppDbContext>("appdb");
 
+
 builder.Services.AddAuthorization();
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
     .AddEntityFrameworkStores<AppDbContext>();
@@ -26,13 +27,22 @@ if (!Directory.Exists(videosPath)) Directory.CreateDirectory(videosPath);
 if (!Directory.Exists(captionsPath)) Directory.CreateDirectory(captionsPath);
 
 var targetDefaultAvatar = Path.Combine(avatarsPath, "default_avatar.png");
-if (!File.Exists(targetDefaultAvatar))
+
+try
 {
-    var sourceDefaultAvatar = Path.Combine(AppContext.BaseDirectory, "Assets", "default_avatar.png");
-    if (File.Exists(sourceDefaultAvatar))
+    if (!File.Exists(targetDefaultAvatar))
     {
-        File.Copy(sourceDefaultAvatar, targetDefaultAvatar);
+        var sourceDefaultAvatar = Path.Combine(AppContext.BaseDirectory, "Assets", "default_avatar.png");
+        if (File.Exists(sourceDefaultAvatar))
+        {
+            File.Copy(sourceDefaultAvatar, targetDefaultAvatar);
+        }
     }
+}
+catch (Exception ex)
+{
+    // Jeśli Docker zablokuje dostęp, wypiszemy tylko błąd w logach, ale NIE ZABIJEMY API!
+    Console.WriteLine($"--> OSTRZEŻENIE: Nie można skopiować domyślnego awatara. Zignorowano. Szczegóły: {ex.Message}");
 }
 
 app.UseStaticFiles(new StaticFileOptions
@@ -52,6 +62,13 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(captionsPath),
     RequestPath = "/captions"
 });
+// Automatyczne aplikowanie zmian w bazie przy uruchomieniu
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    // To polecenie upewnia się, że baza istnieje i tworzy tabele na podstawie modeli
+    dbContext.Database.EnsureCreated();
+}
 
 app.MapRegisterEndpoints();
 app.MapLoginEndpoints();
