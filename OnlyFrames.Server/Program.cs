@@ -25,18 +25,28 @@ app.UseAuthorization();
 
 var avatarsPath = "/media/avatars";
 var videosPath = "/media/videos";
+var captionsPath = "/media/captions";
 
-if (!Directory.Exists(avatarsPath))  Directory.CreateDirectory(avatarsPath);
-if (!Directory.Exists(videosPath))   Directory.CreateDirectory(videosPath);
+if (!Directory.Exists(avatarsPath)) Directory.CreateDirectory(avatarsPath);
+if (!Directory.Exists(videosPath)) Directory.CreateDirectory(videosPath);
+if (!Directory.Exists(captionsPath)) Directory.CreateDirectory(captionsPath);
 
 var targetDefaultAvatar = Path.Combine(avatarsPath, "default_avatar.png");
-if (!File.Exists(targetDefaultAvatar))
+
+try
 {
-    var sourceDefaultAvatar = Path.Combine(AppContext.BaseDirectory, "Assets", "default_avatar.png");
-    if (File.Exists(sourceDefaultAvatar))
+    if (!File.Exists(targetDefaultAvatar))
     {
-        File.Copy(sourceDefaultAvatar, targetDefaultAvatar);
+        var sourceDefaultAvatar = Path.Combine(AppContext.BaseDirectory, "Assets", "default_avatar.png");
+        if (File.Exists(sourceDefaultAvatar))
+        {
+            File.Copy(sourceDefaultAvatar, targetDefaultAvatar);
+        }
     }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"--> OSTRZEŻENIE: Nie można skopiować domyślnego awatara. Zignorowano. Szczegóły: {ex.Message}");
 }
 
 app.UseStaticFiles(new StaticFileOptions
@@ -44,6 +54,23 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(avatarsPath),
     RequestPath = "/avatars"
 });
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(videosPath),
+    RequestPath = "/videos"
+});
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(captionsPath),
+    RequestPath = "/captions"
+});
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.EnsureCreated();
+}
 
 app.MapRegisterEndpoints();
 app.MapLoginEndpoints();
