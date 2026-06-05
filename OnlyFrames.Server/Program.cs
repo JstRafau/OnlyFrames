@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.FileProviders;
 using OnlyFrames.Server.Endpoints;
 using OnlyFrames.Server.Infrastructure;
@@ -16,6 +18,17 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>().AddEntityFrameworkSt
 builder.Services.AddSingleton<TranscodingService>();
 builder.Services.AddSingleton<TranscodeQueue>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<TranscodeQueue>());
+builder.Services.Configure<KestrelServerOptions>(options =>
+{
+    options.Limits.MaxRequestBodySize = 524288000;
+});
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = 524288000;
+    options.MemoryBufferThreshold = int.MaxValue;
+});
 
 var app = builder.Build();
 
