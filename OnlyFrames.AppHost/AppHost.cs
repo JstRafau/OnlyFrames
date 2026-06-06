@@ -17,9 +17,10 @@ var api = builder.AddDockerfile("api", "../OnlyFrames.Server")
     .WaitFor(db)
     .WithEndpoint(port: 8080, targetPort: 8080, name: "http", scheme: "http", isExternal: false)
     .WithHttpHealthCheck("/health")
-    .WithBindMount(videosPath, "/media/videos")
-    .WithBindMount(avatarsPath, "/media/avatars") 
-    .WithBindMount(captionsPath, "/media/captions"); 
+    .WithVolume("onlyframes-videos-vol", "/media/videos")
+    .WithVolume("onlyframes-avatars-vol", "/media/avatars") 
+    .WithVolume("onlyframes-captions-vol", "/media/captions");
+
 var frontend = builder.AddViteApp("frontend", "../frontend")
     .WithReference(api.GetEndpoint("http"))
     .WithEnvironment("VITE_API_BASE_URL", "http://localhost:8080")
