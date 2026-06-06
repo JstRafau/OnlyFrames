@@ -19,6 +19,8 @@ public static class VideoEndpoints
     public static void MapVideoEndpoints(this IEndpointRouteBuilder app)
     {
         var publicGroup = app.MapGroup("/api/videos");
+
+        
         
         publicGroup.MapGet("/all", async (AppDbContext dbContext) =>
         {
@@ -30,13 +32,17 @@ public static class VideoEndpoints
                     v.Description,
                     v.IsPublic,
                     Status = v.Status.ToString().ToLowerInvariant(),
-                    v.CreatedAt
+                    v.CreatedAt,
+                    v.UserId
                 })
                 .ToListAsync();
 
             return Results.Ok(videos);
         });
 
+
+        
+        
         var authGroup = app.MapGroup("/api/videos").RequireAuthorization();
 
         authGroup.MapPost("/upload", async (
@@ -103,6 +109,18 @@ public static class VideoEndpoints
             return Results.Ok(new { Message = "Video upload started.", VideoId = videoId });
         }).DisableAntiforgery();
 
+        
+        
+        app.MapGet("/api/me", (ClaimsPrincipal user) =>
+        {
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Results.Unauthorized();
+    
+            return Results.Ok(new { Id = userId });
+        }).RequireAuthorization();
+        
+        
+        
         authGroup.MapDelete("/remove/{id:guid}", async (
             Guid id,
             ClaimsPrincipal userPrincipal,

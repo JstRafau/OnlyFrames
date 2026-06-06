@@ -5,13 +5,22 @@ using OnlyFrames.Server.Endpoints;
 using OnlyFrames.Server.Infrastructure;
 using OnlyFrames.Server.Models;
 
-
 await FFmpegSetup.InitializeAsync();
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddNpgsqlDbContext<AppDbContext>("appdb");
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendPolicy", policy =>
+    {
+        policy.WithOrigins("https://localhost")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 builder.Services.AddAuthorization();
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>().AddEntityFrameworkStores<AppDbContext>();
@@ -33,6 +42,7 @@ builder.Services.Configure<FormOptions>(options =>
 var app = builder.Build();
 
 app.UseHttpsRedirection();
+app.UseCors("FrontendPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -79,6 +89,7 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(captionsPath),
     RequestPath = "/captions"
 });
+
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();

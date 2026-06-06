@@ -7,6 +7,7 @@ export interface Video {
     isPublic: boolean;
     status: "processing" | "ready" | "failed"; 
     createdAt: string;
+    userId: string;
 }
 
 export async function getVideos(): Promise<Video[]> {
@@ -66,6 +67,15 @@ export async function deleteVideo(id: string): Promise<void> {
         credentials: "include"
     });
     if (!res.ok) throw new Error(await res.text());
+}
+
+export async function getCurrentUser(): Promise<{ id: string } | null> {
+    const res = await fetch(`${BASE}/me`, {
+        credentials: "include"
+    });
+
+    if (!res.ok) return null;
+    return await res.json();
 }
 
 export function streamUrl(id: string): string {

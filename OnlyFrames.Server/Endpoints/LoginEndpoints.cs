@@ -26,8 +26,9 @@ public static class LoginEndpoints
                 return Results.BadRequest(new { Message = "Invalid username/email or password." });
             }
 
-            var claimsPrincipal = await signInManager.CreateUserPrincipalAsync(user);
-            return Results.SignIn(claimsPrincipal, authenticationScheme: IdentityConstants.BearerScheme);
+            await signInManager.SignInAsync(user, isPersistent: true);
+
+            return Results.Ok(new { Message = "Logged in successfully." });
         });
     }
 }

@@ -24,7 +24,7 @@ export default function Upload() {
     const [errorMessage, setErrorMessage] = useState("");
 
     // Obsługa Drag & Drop dla wideo
-    const handleVideoDrop = (e: DragEvent<HTMLDivElement>) => {
+    const handleVideoDrop = (e: DragEvent<HTMLLabelElement>) => {
         e.preventDefault();
         setIsVideoDragging(false);
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -33,7 +33,7 @@ export default function Upload() {
     };
 
     // Obsługa Drag & Drop dla napisów
-    const handleSubtitleDrop = (e: DragEvent<HTMLDivElement>) => {
+    const handleSubtitleDrop = (e: DragEvent<HTMLLabelElement>) => {
         e.preventDefault();
         setIsSubDragging(false);
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -64,7 +64,6 @@ export default function Upload() {
             );
 
             setStatus("success");
-            // Po 2 sekundach od sukcesu przenieś do biblioteki
             setTimeout(() => navigate("/"), 2000);
         } catch (error: any) {
             setStatus("error");
@@ -132,76 +131,74 @@ export default function Upload() {
                     </label>
                 </div>
 
-                {/* --- SEKCJA DRAG & DROP WIDEO --- */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Plik Wideo *</label>
-                    <div
-                        onDragOver={(e) => { e.preventDefault(); setIsVideoDragging(true); }}
-                        onDragLeave={() => setIsVideoDragging(false)}
-                        onDrop={handleVideoDrop}
-                        className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors ${
-                            isVideoDragging ? "border-indigo-500 bg-indigo-50" : "border-gray-300 hover:border-gray-400"
-                        } ${status === "uploading" ? "opacity-50 pointer-events-none" : ""}`}
-                    >
-                        <div className="space-y-1 text-center">
-                            <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                {/* --- SEKCJA DRAG & DROP --- */}
+                <div className="flex flex-wrap gap-6 justify-center pt-2">
+
+                    {/* WIDEO BOX (200x200) */}
+                    <div className="flex flex-col items-center">
+                        <span className="block text-sm font-medium text-gray-700 mb-2">Plik Wideo *</span>
+                        <label
+                            onDragOver={(e) => { e.preventDefault(); setIsVideoDragging(true); }}
+                            onDragLeave={() => setIsVideoDragging(false)}
+                            onDrop={handleVideoDrop}
+                            className={`w-[200px] h-[200px] flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-md transition-colors cursor-pointer text-center ${
+                                isVideoDragging ? "border-indigo-500 bg-indigo-50" : "border-gray-300 hover:border-gray-400"
+                            } ${status === "uploading" ? "opacity-50 pointer-events-none" : ""}`}
+                        >
+                            <input
+                                type="file"
+                                accept="video/mp4,video/webm,video/quicktime,video/x-matroska"
+                                className="sr-only"
+                                onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                                disabled={status === "uploading" || status === "success"}
+                            />
+                            <svg className="h-10 w-10 text-indigo-400 mb-2" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
                                 <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
-                            <div className="flex text-sm text-gray-600 justify-center">
-                                <label className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                                    <span>Wybierz plik</span>
-                                    <input
-                                        type="file"
-                                        accept="video/mp4,video/webm,video/quicktime,video/x-matroska"
-                                        className="sr-only"
-                                        onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                                        disabled={status === "uploading" || status === "success"}
-                                    />
-                                </label>
-                                <p className="pl-1">lub przeciągnij i upuść</p>
-                            </div>
-                            <p className="text-xs text-gray-500">
-                                {videoFile ? <span className="font-bold text-indigo-600">{videoFile.name}</span> : "MP4, WEBM, MOV, MKV"}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                            <span className="text-sm font-medium text-indigo-600">Wybierz plik</span>
+                            <span className="text-xs text-gray-500 mt-1">lub upuść tutaj</span>
 
-                {/* --- SEKCJA DRAG & DROP NAPISY --- */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Napisy (Opcjonalnie, tylko .VTT)</label>
-                    <div
-                        onDragOver={(e) => { e.preventDefault(); setIsSubDragging(true); }}
-                        onDragLeave={() => setIsSubDragging(false)}
-                        onDrop={handleSubtitleDrop}
-                        className={`mt-1 flex justify-center px-6 pt-4 pb-4 border-2 border-dashed rounded-md transition-colors ${
-                            isSubDragging ? "border-green-500 bg-green-50" : "border-gray-300 hover:border-gray-400"
-                        } ${status === "uploading" ? "opacity-50 pointer-events-none" : ""}`}
-                    >
-                        <div className="space-y-1 text-center">
-                            <div className="flex text-sm text-gray-600 justify-center">
-                                <label className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500">
-                                    <span>Wybierz plik .vtt</span>
-                                    <input
-                                        type="file"
-                                        accept=".vtt"
-                                        className="sr-only"
-                                        onChange={(e) => setSubtitleFile(e.target.files?.[0] || null)}
-                                        disabled={status === "uploading" || status === "success"}
-                                    />
-                                </label>
-                                <p className="pl-1">lub przeciągnij i upuść</p>
-                            </div>
-                            <p className="text-xs text-gray-500">
-                                {subtitleFile ? <span className="font-bold text-green-600">{subtitleFile.name}</span> : "Brak pliku"}
-                            </p>
-                        </div>
+                            <span className="mt-3 text-xs text-gray-500 truncate w-full px-2 font-semibold">
+                                {videoFile ? <span className="text-indigo-600">{videoFile.name}</span> : "MP4, WEBM, MKV"}
+                            </span>
+                        </label>
                     </div>
+
+                    {/* NAPISY BOX (200x200) */}
+                    <div className="flex flex-col items-center">
+                        <span className="block text-sm font-medium text-gray-700 mb-2">Napisy (Opcjonalnie)</span>
+                        <label
+                            onDragOver={(e) => { e.preventDefault(); setIsSubDragging(true); }}
+                            onDragLeave={() => setIsSubDragging(false)}
+                            onDrop={handleSubtitleDrop}
+                            className={`w-[200px] h-[200px] flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-md transition-colors cursor-pointer text-center ${
+                                isSubDragging ? "border-green-500 bg-green-50" : "border-gray-300 hover:border-gray-400"
+                            } ${status === "uploading" ? "opacity-50 pointer-events-none" : ""}`}
+                        >
+                            <input
+                                type="file"
+                                accept=".vtt"
+                                className="sr-only"
+                                onChange={(e) => setSubtitleFile(e.target.files?.[0] || null)}
+                                disabled={status === "uploading" || status === "success"}
+                            />
+                            <svg className="h-10 w-10 text-green-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span className="text-sm font-medium text-green-600">Wybierz .vtt</span>
+                            <span className="text-xs text-gray-500 mt-1">lub upuść tutaj</span>
+
+                            <span className="mt-3 text-xs text-gray-500 truncate w-full px-2 font-semibold">
+                                {subtitleFile ? <span className="text-green-600">{subtitleFile.name}</span> : "Tylko pliki VTT"}
+                            </span>
+                        </label>
+                    </div>
+
                 </div>
 
                 {/* --- PASEK POSTĘPU WGRYWANIA --- */}
                 {status === "uploading" && (
-                    <div className="w-full bg-gray-200 rounded-full h-4 mb-4 overflow-hidden shadow-inner">
+                    <div className="w-full bg-gray-200 rounded-full h-4 mb-4 overflow-hidden shadow-inner mt-4">
                         <div
                             className="bg-indigo-600 h-4 rounded-full transition-all duration-300 ease-out flex items-center justify-center text-[10px] text-white font-bold"
                             style={{ width: `${progress}%` }}
@@ -215,7 +212,7 @@ export default function Upload() {
                 <button
                     type="submit"
                     disabled={status === "uploading" || status === "success" || !videoFile}
-                    className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                    className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white mt-4 ${
                         status === "uploading" || !videoFile
                             ? "bg-indigo-400 cursor-not-allowed"
                             : "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"

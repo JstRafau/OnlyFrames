@@ -1,6 +1,10 @@
 ﻿FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER root
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+# Instalujemy ffmpeg ORAZ tworzymy foldery z odpowiednimi uprawnieniami w jednym kroku
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /media/videos /media/avatars /media/captions \
+    && chown -R $APP_UID:$APP_UID /media
+# Wracamy do bezpiecznego użytkownika
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080

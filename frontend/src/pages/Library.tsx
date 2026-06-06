@@ -1,17 +1,29 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getVideos, type Video } from "../api";
+// Dodaj import getCurrentUser
+import { getVideos, deleteVideo, getCurrentUser, type Video } from "../api";
 
 export default function Library() {
     const [videos, setVideos] = useState<Video[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    // Dodajemy nowy stan na ID zalogowanego usera
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
     const navigate = useNavigate();
 
     useEffect(() => {
-        getVideos()
-            .then((data) => {
-                setVideos(data);
+        // Pobieramy naraz i filmy, i dane użytkownika
+        Promise.all([
+            getVideos(),
+            getCurrentUser()
+        ])
+            .then(([videosData, userData]) => {
+                setVideos(videosData);
+                if (userData) {
+                    setCurrentUserId(userData.id);
+                }
                 setIsLoading(false);
             })
             .catch((e) => {
@@ -19,6 +31,19 @@ export default function Library() {
                 setIsLoading(false);
             });
     }, []);
+
+    const handleActionDelete = async (id: string, title: string) => {
+        const confirmed = window.confirm(`Czy na pewno chcesz bezpowrotnie usunąć film: "${title}"?`);
+
+        if (!confirmed) return;
+
+        try {
+            await deleteVideo(id);
+            setVideos(prevVideos => prevVideos.filter(v => v.id !== id));
+        } catch (e: any) {
+            alert(`Nie udało się usunąć filmu: ${e.message}`);
+        }
+    };
 
     if (isLoading) {
         return (
@@ -58,7 +83,6 @@ export default function Library() {
                     return (
                         <div key={v.id} className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col border border-gray-200">
 
-                            {/* Miejsce na miniaturkę w przyszłości */}
                             <div className="bg-gray-200 h-48 flex items-center justify-center relative">
                                 {!isReady && (
                                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -75,8 +99,6 @@ export default function Library() {
                                     <h3 className="text-lg font-bold text-gray-900 truncate" title={v.title}>
                                         {v.title}
                                     </h3>
-
-                                    {/* Odznaka public/private */}
                                     <span className={`text-xs px-2 py-1 rounded-full ${v.isPublic ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
                                         {v.isPublic ? "Publiczny" : "Prywatny"}
                                     </span>
@@ -88,7 +110,6 @@ export default function Library() {
                                     </p>
                                 )}
 
-                                {/* Odznaka statusu i przycisk */}
                                 <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
                                     <span className={`text-xs font-bold ${
                                         isReady ? 'text-green-600' : isFailed ? 'text-red-600' : 'text-orange-500'
@@ -96,17 +117,30 @@ export default function Library() {
                                         {v.status.toUpperCase()}
                                     </span>
 
-                                    <button
-                                        onClick={() => navigate(`/player/${v.id}`)}
-                                        disabled={!isReady}
-                                        className={`px-4 py-2 rounded text-sm font-semibold transition-colors ${
-                                            isReady
-                                                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        }`}
-                                    >
-                                        Odtwórz
-                                    </button>
+                                    <div className="flex gap-2">
+                                        {/* Magia się dzieje tutaj: przycisk sprawdza prawdziwe ID z serwera */}
+                                        {currentUserId === v.userId && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleActionDelete(v.id, v.title)}
+                                                className="px-3 py-2 rounded text-sm font-semibold text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors"
+                                            >
+                                                Usuń
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate(`/player/${v.id}`)}
+                                            disabled={!isReady}
+                                            className={`px-4 py-2 rounded text-sm font-semibold transition-colors ${
+                                                isReady
+                                                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            }`}
+                                        >
+                                            Odtwórz
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
