@@ -28,7 +28,7 @@ public static class StreamEndpoints
         group.MapGet("/{videoId}/{file}", (Guid videoId, string file, IConfiguration config) =>
         {
             var ext = Path.GetExtension(file);
-            if (ext != ".ts" && ext != ".m3u8" && ext != ".vtt")
+            if (ext != ".ts" && ext != ".m3u8" && ext != ".vtt" && ext != ".jpg")
                 return Results.BadRequest();
 
             var path = Path.Combine(config["Storage:VideosPath"]!, videoId.ToString(), file);
@@ -45,6 +45,7 @@ public static class StreamEndpoints
             {
                 ".ts"  => "video/mp2t",
                 ".vtt" => "text/vtt",
+                ".jpg" => "image/jpg",
                 _      => "application/vnd.apple.mpegurl"
             };
 
