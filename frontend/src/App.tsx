@@ -5,6 +5,8 @@ import Register from './pages/Register';
 import Library from './pages/Library';
 import Upload from './pages/Upload'; // Dodany import nowej strony
 import Player from './pages/Player';
+import Account from "./pages/Account";
+
 
 export default function App() {
     return (
@@ -39,6 +41,12 @@ export default function App() {
                                     >
                                         Wgraj Wideo
                                     </Link>
+                                    <Link
+                                        to="/account"
+                                        className="text-indigo-400 hover:text-white"
+                                    >
+                                        Moje konto
+                                    </Link>
                                 </nav>
                             </div>
 
@@ -64,6 +72,7 @@ export default function App() {
                         <Route path="/library" element={<Library />} />
                         <Route path="/upload" element={<Upload />} />
                         <Route path="/player/:videoGuid" element={<Player />} />
+                        <Route path="/account" element={<Account />} />
 
                         {/* Fallback dla nieznanych adresów */}
                         <Route path="*" element={

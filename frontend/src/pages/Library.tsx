@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// Dodaj import getCurrentUser
 import { getVideos, deleteVideo, getCurrentUser, getThumbUrl, type Video } from "../api";
 
 export default function Library() {
@@ -8,13 +7,11 @@ export default function Library() {
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    // Dodajemy nowy stan na ID zalogowanego usera
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Pobieramy naraz i filmy, i dane użytkownika
         Promise.all([
             getVideos(),
             getCurrentUser()
@@ -117,7 +114,6 @@ export default function Library() {
                                     </span>
 
                                     <div className="flex gap-2">
-                                        {/* Magia się dzieje tutaj: przycisk sprawdza prawdziwe ID z serwera */}
                                         {currentUserId === v.userId && (
                                             <button
                                                 type="button"
