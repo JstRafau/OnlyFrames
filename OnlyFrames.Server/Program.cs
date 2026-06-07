@@ -44,10 +44,13 @@ app.UseCors("FrontendPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
-var mediaPath = Path.Combine(Directory.GetCurrentDirectory(), "media");
-var avatarsPath = Path.Combine(mediaPath, "avatars");
-var videosPath = Path.Combine(mediaPath, "videos");
-var captionsPath = Path.Combine(mediaPath, "captions");
+var config = app.Configuration;
+
+var defaultMediaPath = Path.Combine(Directory.GetCurrentDirectory(), "media");
+
+var avatarsPath = config["Storage:AvatarsPath"] ?? Path.Combine(defaultMediaPath, "avatars");
+var videosPath = config["Storage:VideosPath"] ?? Path.Combine(defaultMediaPath, "videos");
+var captionsPath = config["Storage:CaptionsPath"] ?? Path.Combine(defaultMediaPath, "captions");
 
 if (!Directory.Exists(avatarsPath)) Directory.CreateDirectory(avatarsPath);
 if (!Directory.Exists(videosPath)) Directory.CreateDirectory(videosPath);
@@ -85,7 +88,6 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(captionsPath),
     RequestPath = "/captions"
 });
-
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();

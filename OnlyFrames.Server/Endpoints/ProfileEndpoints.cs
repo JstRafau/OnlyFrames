@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Identity;
 using OnlyFrames.Server.Models;
 
 namespace OnlyFrames.Server.Endpoints;
+
 /// <summary>
 /// Provides extension methods for mapping user profile management endpoints.
 /// </summary>
-
 public static class ProfileEndpoints
 {
     /// <summary>
@@ -18,19 +18,20 @@ public static class ProfileEndpoints
     {
         var group = app.MapGroup("/api/profile").RequireAuthorization();
 
-        // 1. POBIERANIE DANYCH
-        group.MapGet("/info", async (ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager) =>
+        // 1. Zmiana w /info - dodano IConfiguration config
+        group.MapGet("/info", async (ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager, IConfiguration config) =>
         {
             var user = await userManager.GetUserAsync(userPrincipal);
             if (user == null) return Results.Unauthorized();
 
-            var avatarFolder = Path.Combine(Directory.GetCurrentDirectory(), "media", "avatars");
+            // POBIERANIE ŚCIEŻKI Z KONFIGURACJI (tak jak w filmach)
+            var defaultAvatarFolder = Path.Combine(Directory.GetCurrentDirectory(), "media", "avatars");
+            var avatarFolder = config["Storage:AvatarsPath"] ?? defaultAvatarFolder;
 
             var existingFiles = Directory.Exists(avatarFolder)
                 ? Directory.GetFiles(avatarFolder, $"{user.Id}.*")
                 : Array.Empty<string>();
 
-            // Tutaj jest nowe /api/avatars
             var avatarUrl = existingFiles.Length > 0
                 ? $"/api/avatars/{Path.GetFileName(existingFiles[0])}"
                 : null;
@@ -38,7 +39,6 @@ public static class ProfileEndpoints
             return Results.Ok(new { Username = user.UserName, AvatarUrl = avatarUrl });
         });
 
-        // 2. ZMIANA NICKU
         group.MapPost("/change-username", async (ChangeUsernameDto model, ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager) =>
         {
             var user = await userManager.GetUserAsync(userPrincipal);
@@ -53,7 +53,6 @@ public static class ProfileEndpoints
             return Results.Ok(new { Message = "Nazwa zmieniona pomyślnie." });
         });
 
-        // 3. ZMIANA HASŁA
         group.MapPost("/change-password", async (ChangePasswordDto model, ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager) =>
         {
             var user = await userManager.GetUserAsync(userPrincipal);
@@ -65,8 +64,8 @@ public static class ProfileEndpoints
             return Results.Ok(new { Message = "Hasło zmienione pomyślnie." });
         });
 
-        // 4. WGRYWANIE AWATARA
-        group.MapPost("/avatar", async (IFormFile file, ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager) =>
+        // 2. Zmiana w /avatar - dodano IConfiguration config
+        group.MapPost("/avatar", async (IFormFile file, ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager, IConfiguration config) =>
         {
             var user = await userManager.GetUserAsync(userPrincipal);
             if (user == null) return Results.Unauthorized();
@@ -78,7 +77,9 @@ public static class ProfileEndpoints
             if (!allowedExtensions.Contains(extension))
                 return Results.BadRequest(new { Message = "Tylko pliki JPG, PNG i WEBP są dozwolone." });
 
-            var avatarFolder = Path.Combine(Directory.GetCurrentDirectory(), "media", "avatars");
+            // POBIERANIE ŚCIEŻKI Z KONFIGURACJI (zapis prosto na bezpieczny wolumen)
+            var defaultAvatarFolder = Path.Combine(Directory.GetCurrentDirectory(), "media", "avatars");
+            var avatarFolder = config["Storage:AvatarsPath"] ?? defaultAvatarFolder;
 
             if (!Directory.Exists(avatarFolder)) Directory.CreateDirectory(avatarFolder);
 
@@ -93,7 +94,6 @@ public static class ProfileEndpoints
                 await file.CopyToAsync(stream);
             }
 
-            // Tutaj jest dodane /api i zamknięte wszystkie nawiasy!
             return Results.Ok(new { Message = "Awatar zaktualizowany.", AvatarUrl = $"/api/avatars/{newFileName}" });
         }).DisableAntiforgery();
     }
