@@ -1,7 +1,11 @@
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using OnlyFrames.Server.Models;
+
 namespace OnlyFrames.Server.Endpoints;
 
 /// <summary>
-/// Provides extension methods for mapping video streaming endpoints.
+/// Provides extension methods for mapping video streaming endpoints with security checks.
 /// </summary>
 public static class StreamEndpoints
 {
@@ -18,24 +22,64 @@ public static class StreamEndpoints
     public static void MapStreamEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/videos/stream");
-        group.MapGet("/{videoId}", (Guid videoId, IConfiguration config) =>
+
+        group.MapGet("/{videoId:guid}", async (
+            Guid videoId,
+            IConfiguration config,
+            AppDbContext dbContext,
+            ClaimsPrincipal userPrincipal) =>
         {
-            var m3U8 = Path.Combine(config["Storage:VideosPath"]!, videoId.ToString(), "720p.m3u8");
+            var video = await dbContext.Videos.FindAsync(videoId);
+            if (video == null) return Results.NotFound("Video not found.");
+
+            if (!video.IsPublic)
+            {
+                var currentUserId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserId == null || video.UserId != currentUserId)
+                {
+                    return Results.Json(new { Message = "This video is private." }, statusCode: 403);
+                }
+            }
+
+            var defaultStoragePath = Path.Combine(Directory.GetCurrentDirectory(), "media", "videos");
+            var storagePath = config["Storage:VideosPath"] ?? defaultStoragePath;
+
+            var m3U8 = Path.Combine(storagePath, videoId.ToString(), "720p.m3u8");
             if (!File.Exists(m3U8)) return Results.NotFound();
+
             return Results.File(m3U8, "application/vnd.apple.mpegurl");
         });
-        
-        group.MapGet("/{videoId}/{file}", (Guid videoId, string file, IConfiguration config) =>
+
+        group.MapGet("/{videoId:guid}/{file}", async (
+            Guid videoId,
+            string file,
+            IConfiguration config,
+            AppDbContext dbContext,
+            ClaimsPrincipal userPrincipal) =>
         {
+            var video = await dbContext.Videos.FindAsync(videoId);
+            if (video == null) return Results.NotFound("Video not found.");
+
+            if (!video.IsPublic)
+            {
+                var currentUserId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserId == null || video.UserId != currentUserId)
+                {
+                    return Results.Json(new { Message = "This video is private." }, statusCode: 403);
+                }
+            }
+
             var ext = Path.GetExtension(file);
             if (ext != ".ts" && ext != ".m3u8" && ext != ".vtt")
                 return Results.BadRequest();
 
-            var path = Path.Combine(config["Storage:VideosPath"]!, videoId.ToString(), file);
-    
-            // prevent path traversal
+            var defaultStoragePath = Path.Combine(Directory.GetCurrentDirectory(), "media", "videos");
+            var storagePath = config["Storage:VideosPath"] ?? defaultStoragePath;
+
+            var path = Path.Combine(storagePath, videoId.ToString(), file);
+
             var fullPath = Path.GetFullPath(path);
-            var basePath = Path.GetFullPath(Path.Combine(config["Storage:VideosPath"]!, videoId.ToString()));
+            var basePath = Path.GetFullPath(Path.Combine(storagePath, videoId.ToString()));
             if (!fullPath.StartsWith(basePath))
                 return Results.BadRequest();
 
@@ -43,19 +87,12 @@ public static class StreamEndpoints
 
             string contentType = ext switch
             {
-                ".ts"  => "video/mp2t",
+                ".ts" => "video/mp2t",
                 ".vtt" => "text/vtt",
-                _      => "application/vnd.apple.mpegurl"
+                _ => "application/vnd.apple.mpegurl"
             };
 
             return Results.File(fullPath, contentType);
         });
-        
-        //group.MapGet("/videos/{videoId}/stream/subtitle/{vtt}", (Guid videoId, string ts, IConfiguration config) =>
-        //{
-        //    var tsFile = Path.Combine(config["Storage:VideosPath"]!, videoId.ToString(), ts);
-        //    if (!File.Exists(tsFile)) return Results.NotFound();
-        //    return Results.File(tsFile, "application/vnd.apple.mpegurl");
-        //});
     }
 }

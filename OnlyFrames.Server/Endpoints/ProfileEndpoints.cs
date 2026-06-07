@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Identity;
 using OnlyFrames.Server.Models;
 
 namespace OnlyFrames.Server.Endpoints;
-
 /// <summary>
 /// Provides extension methods for mapping user profile management endpoints.
 /// </summary>
+
 public static class ProfileEndpoints
 {
     /// <summary>
@@ -18,76 +18,83 @@ public static class ProfileEndpoints
     {
         var group = app.MapGroup("/api/profile").RequireAuthorization();
 
-        group.MapPost("/change-password",
-            async (ChangePasswordDto model, ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager) =>
+        // 1. POBIERANIE DANYCH
+        group.MapGet("/info", async (ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager) =>
+        {
+            var user = await userManager.GetUserAsync(userPrincipal);
+            if (user == null) return Results.Unauthorized();
+
+            var avatarFolder = Path.Combine(Directory.GetCurrentDirectory(), "media", "avatars");
+
+            var existingFiles = Directory.Exists(avatarFolder)
+                ? Directory.GetFiles(avatarFolder, $"{user.Id}.*")
+                : Array.Empty<string>();
+
+            // Tutaj jest nowe /api/avatars
+            var avatarUrl = existingFiles.Length > 0
+                ? $"/api/avatars/{Path.GetFileName(existingFiles[0])}"
+                : null;
+
+            return Results.Ok(new { Username = user.UserName, AvatarUrl = avatarUrl });
+        });
+
+        // 2. ZMIANA NICKU
+        group.MapPost("/change-username", async (ChangeUsernameDto model, ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager) =>
+        {
+            var user = await userManager.GetUserAsync(userPrincipal);
+            if (user == null) return Results.Unauthorized();
+
+            var existingUser = await userManager.FindByNameAsync(model.NewUsername);
+            if (existingUser != null) return Results.BadRequest(new { Message = "Ta nazwa użytkownika jest już zajęta." });
+
+            var result = await userManager.SetUserNameAsync(user, model.NewUsername);
+            if (!result.Succeeded) return Results.BadRequest(result.Errors);
+
+            return Results.Ok(new { Message = "Nazwa zmieniona pomyślnie." });
+        });
+
+        // 3. ZMIANA HASŁA
+        group.MapPost("/change-password", async (ChangePasswordDto model, ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager) =>
+        {
+            var user = await userManager.GetUserAsync(userPrincipal);
+            if (user == null) return Results.Unauthorized();
+
+            var result = await userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+            if (!result.Succeeded) return Results.BadRequest(result.Errors);
+
+            return Results.Ok(new { Message = "Hasło zmienione pomyślnie." });
+        });
+
+        // 4. WGRYWANIE AWATARA
+        group.MapPost("/avatar", async (IFormFile file, ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager) =>
+        {
+            var user = await userManager.GetUserAsync(userPrincipal);
+            if (user == null) return Results.Unauthorized();
+            if (file == null || file.Length == 0) return Results.BadRequest("Nie wybrano pliku.");
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(extension))
+                return Results.BadRequest(new { Message = "Tylko pliki JPG, PNG i WEBP są dozwolone." });
+
+            var avatarFolder = Path.Combine(Directory.GetCurrentDirectory(), "media", "avatars");
+
+            if (!Directory.Exists(avatarFolder)) Directory.CreateDirectory(avatarFolder);
+
+            var newFileName = $"{user.Id}{extension}";
+            var fullPath = Path.Combine(avatarFolder, newFileName);
+
+            var existingFiles = Directory.GetFiles(avatarFolder, $"{user.Id}.*");
+            foreach (var existingFile in existingFiles) File.Delete(existingFile);
+
+            using (var stream = new FileStream(fullPath, FileMode.Create))
             {
-                var user = await userManager.GetUserAsync(userPrincipal);
-                if (user == null) return Results.Unauthorized();
+                await file.CopyToAsync(stream);
+            }
 
-                var result = await userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
-                if (!result.Succeeded) return Results.BadRequest(result.Errors);
-
-                return Results.Ok(new { Message = "Password changed successfully." });
-            });
-
-        group.MapPost("/avatar",
-            async (IFormFile file, ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager) =>
-            {
-                var user = await userManager.GetUserAsync(userPrincipal);
-                if (user == null) return Results.Unauthorized();
-                if (file == null || file.Length == 0) return Results.BadRequest("No file was uploaded.");
-
-                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-                if (!allowedExtensions.Contains(extension))
-                {
-                    return Results.BadRequest(new
-                        { Message = "Invalid file type. Only JPG, PNG, and WEBP formats are allowed." });
-                }
-
-                var avatarFolder = "/media/avatars";
-                if (!Directory.Exists(avatarFolder)) Directory.CreateDirectory(avatarFolder);
-
-                var newFileName = $"{user.UserName}{extension}";
-                var fullPath = Path.Combine(avatarFolder, newFileName);
-
-                var existingFiles = Directory.GetFiles(avatarFolder, $"{user.UserName}.*");
-                foreach (var existingFile in existingFiles) File.Delete(existingFile);
-
-                using (var stream = new FileStream(fullPath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                return Results.Ok(new
-                    { Message = "Avatar updated successfully.", AvatarUrl = $"/avatars/{newFileName}" });
-            }).DisableAntiforgery();
-
-        group.MapDelete("/avatar",
-            async (ClaimsPrincipal userPrincipal, UserManager<ApplicationUser> userManager) =>
-            {
-                var user = await userManager.GetUserAsync(userPrincipal);
-                if (user == null) return Results.Unauthorized();
-
-                var avatarFolder = "/media/avatars";
-
-                if (!Directory.Exists(avatarFolder))
-                    return Results.Ok(new { Message = "Avatar removed successfully." });
-
-                var existingFiles = Directory.GetFiles(avatarFolder, $"{user.UserName}.*");
-
-                if (existingFiles.Length == 0)
-                {
-                    return Results.Ok(new { Message = "No avatar found to remove." });
-                }
-
-                foreach (var existingFile in existingFiles)
-                {
-                    File.Delete(existingFile);
-                }
-
-                return Results.Ok(new { Message = "Avatar removed successfully." });
-            });
+            // Tutaj jest dodane /api i zamknięte wszystkie nawiasy!
+            return Results.Ok(new { Message = "Awatar zaktualizowany.", AvatarUrl = $"/api/avatars/{newFileName}" });
+        }).DisableAntiforgery();
     }
 }

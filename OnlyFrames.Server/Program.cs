@@ -6,9 +6,7 @@ using OnlyFrames.Server.Infrastructure;
 using OnlyFrames.Server.Models;
 
 await FFmpegSetup.InitializeAsync();
-
 var builder = WebApplication.CreateBuilder(args);
-
 builder.AddNpgsqlDbContext<AppDbContext>("appdb");
 
 builder.Services.AddCors(options =>
@@ -27,11 +25,11 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>().AddEntityFrameworkSt
 builder.Services.AddSingleton<TranscodingService>();
 builder.Services.AddSingleton<TranscodeQueue>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<TranscodeQueue>());
+
 builder.Services.Configure<KestrelServerOptions>(options =>
 {
     options.Limits.MaxRequestBodySize = 524288000;
 });
-
 builder.Services.Configure<FormOptions>(options =>
 {
     options.ValueLengthLimit = int.MaxValue;
@@ -46,16 +44,16 @@ app.UseCors("FrontendPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
-var avatarsPath = "/media/avatars";
-var videosPath = "/media/videos";
-var captionsPath = "/media/captions";
+var mediaPath = Path.Combine(Directory.GetCurrentDirectory(), "media");
+var avatarsPath = Path.Combine(mediaPath, "avatars");
+var videosPath = Path.Combine(mediaPath, "videos");
+var captionsPath = Path.Combine(mediaPath, "captions");
 
 if (!Directory.Exists(avatarsPath)) Directory.CreateDirectory(avatarsPath);
 if (!Directory.Exists(videosPath)) Directory.CreateDirectory(videosPath);
 if (!Directory.Exists(captionsPath)) Directory.CreateDirectory(captionsPath);
 
 var targetDefaultAvatar = Path.Combine(avatarsPath, "default_avatar.png");
-
 try
 {
     if (!File.Exists(targetDefaultAvatar))
@@ -75,15 +73,13 @@ catch (Exception ex)
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(avatarsPath),
-    RequestPath = "/avatars"
+    RequestPath = "/api/avatars"
 });
-
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(videosPath),
     RequestPath = "/videos"
 });
-
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(captionsPath),
@@ -93,7 +89,10 @@ app.UseStaticFiles(new StaticFileOptions
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    dbContext.Database.EnsureCreated();
+
+    // dbContext.Database.EnsureDeleted();
+
+    dbContext.Database.EnsureCreated(); 
 }
 
 app.MapRegisterEndpoints();
