@@ -70,7 +70,7 @@ public static class StreamEndpoints
             }
 
             var ext = Path.GetExtension(file);
-            if (ext != ".ts" && ext != ".m3u8" && ext != ".vtt")
+            if (ext != ".ts" && ext != ".m3u8" && ext != ".vtt" && ext != ".jpg")
                 return Results.BadRequest();
 
             var defaultStoragePath = Path.Combine(Directory.GetCurrentDirectory(), "media", "videos");

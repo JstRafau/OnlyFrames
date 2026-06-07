@@ -20,6 +20,9 @@ export async function getVideos(): Promise<Video[]> {
     return res.json();
 }
 
+export function getThumbUrl(id: string): string {
+    return `${BASE}/videos/stream/${id}/thumb.jpg`;
+}
 export async function uploadVideo(
     title: string,
     description: string,

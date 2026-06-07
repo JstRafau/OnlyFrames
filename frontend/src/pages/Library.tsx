@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getVideos, deleteVideo, getCurrentUser, type Video } from "../api";
+import { getVideos, deleteVideo, getCurrentUser, getThumbUrl, type Video } from "../api";
 
 export default function Library() {
     const [videos, setVideos] = useState<Video[]>([]);
@@ -79,7 +79,6 @@ export default function Library() {
 
                     return (
                         <div key={v.id} className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col border border-gray-200">
-
                             <div className="bg-gray-200 h-48 flex items-center justify-center relative">
                                 {!isReady && (
                                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -88,7 +87,7 @@ export default function Library() {
                                         </span>
                                     </div>
                                 )}
-                                <span className="text-gray-400">[Miniatura]</span>
+                                <img src={getThumbUrl(v.id)} style={{ maxWidth: "320px", maxHeight: "180px", objectFit: "contain" }} />
                             </div>
 
                             <div className="p-4 flex flex-col flex-grow">

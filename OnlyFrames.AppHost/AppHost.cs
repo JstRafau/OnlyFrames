@@ -8,18 +8,13 @@ var db = builder.AddPostgres("postgres")
     .WithDataVolume("onlyframes-data-v2")
     .AddDatabase("appdb");
 
-var videosPath = builder.Configuration["Volumes:Videos"] ?? "/opt/onlyframes/videos";
-var avatarsPath = builder.Configuration["Volumes:Avatars"] ?? "/opt/onlyframes/avatars";
-var captionsPath = builder.Configuration["Volumes:Captions"] ?? "/opt/onlyframes/captions";
-
 var api = builder.AddDockerfile("api", "../OnlyFrames.Server")
     .WithReference(db)
     .WaitFor(db)
     .WithEndpoint(port: 8080, targetPort: 8080, name: "http", scheme: "http", isExternal: false)
     .WithHttpHealthCheck("/health")
     .WithVolume("onlyframes-videos-vol", "/media/videos")
-    .WithVolume("onlyframes-avatars-vol", "/media/avatars") 
-    .WithVolume("onlyframes-captions-vol", "/media/captions");
+    .WithVolume("onlyframes-avatars-vol", "/media/avatars");
 
 var frontend = builder.AddViteApp("frontend", "../frontend")
     .WithReference(api.GetEndpoint("http"))
