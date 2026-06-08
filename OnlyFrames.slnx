@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="OnlyFrames.AppHost\OnlyFrames.AppHost.csproj" />
   <Project Path="OnlyFrames.Server\OnlyFrames.Server.csproj" />
+  <Project Path="OnlyFrames.Tests/OnlyFrames.Tests.csproj" />
 </Solution>
