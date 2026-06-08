@@ -6,7 +6,7 @@ OnlyFrames znajdziesz [tutaj](https://szachuz.lol/).
 
 ---
 
-## 🚀 Główne funkcjonalności
+## Główne funkcjonalności
 
 * **Zarządzanie widocznością:** Pełne wsparcie dla filmów **publicznych** oraz **prywatnych** (z ograniczonym dostępem).
 * **Bezpieczeństwo i autentykacja:** Pełny system rejestracji, logowania oraz zarządzania uprawnieniami użytkowników, gwarantujący, że prywatne materiały trafiają tylko do uprawnionych osób.
@@ -18,7 +18,7 @@ OnlyFrames znajdziesz [tutaj](https://szachuz.lol/).
 
 ---
 
-## 🏗 Stack technologiczny & Architektura
+## Stack technologiczny & Architektura  
 
 * **Framework główny:** .NET (C#) wraz z ekosystemem i orkiestracją **.NET Aspire**.
 * **Autentykacja i autoryzacja:** **ASP.NET Core Identity** – wbudowany, bezpieczny system zarządzania użytkownikami, hasłami, rolami oraz tokenami dostępowymi.
@@ -29,7 +29,7 @@ OnlyFrames znajdziesz [tutaj](https://szachuz.lol/).
 
 ---
 
-## 🛠 Wymagania wstępne
+## Wymagania wstępne
 
 Zanim przejdziesz do wdrożenia, upewnij się, że masz zainstalowane:
 
