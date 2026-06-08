@@ -80,13 +80,6 @@
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
-  .card {
-    border: 2px solid currentColor;
-  }
-
-  .weather-card {
-    border: 1px solid currentColor;
-  }
 }
 
 /* Focus visible support for better keyboard navigation */

@@ -98,12 +98,12 @@ public class TranscodingService
             await BuildHlsConversion(videoStream, audioStream, outputDir, "720p", 1280, 720, ct);
             generatedStreams.Add(("720p", 3_000_000, 1280, 720));
         }
-        if (sourceHeight >= 5080)
+        if (sourceHeight >= 1080)
         {
             await BuildHlsConversion(videoStream, audioStream, outputDir, "1080p", 1920, 1080, ct);
             generatedStreams.Add(("1080p", 6_000_000, 1920, 1080));
         }
-        if (sourceHeight >= 5160)
+        if (sourceHeight >= 2160)
         {
             await BuildHlsConversion(videoStream, audioStream, outputDir, "4k", 3840, 2160, ct);
             generatedStreams.Add(("4k", 20_000_000, 3840, 2160));

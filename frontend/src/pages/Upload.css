@@ -1,0 +1,42 @@
+/*
+.content {
+    width: 100%;
+}
+*/
+
+.icon {
+    max-width: 1.2em;
+    max-height: 1.2em;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.block {
+    display: block;
+}
+
+.flex-wrap {
+    flex-wrap: wrap;
+}
+
+.gap {
+    gap: 6px;
+}
+
+.margin-bottom {
+    margin-bottom: 1em;
+}

@@ -45,7 +45,7 @@ public static class StreamEndpoints
             var defaultStoragePath = Path.Combine(Directory.GetCurrentDirectory(), "media", "videos");
             var storagePath = config["Storage:VideosPath"] ?? defaultStoragePath;
 
-            var m3U8 = Path.Combine(config["Storage:VideosPath"]!, videoId.ToString(), "master.m3u8");
+            var m3U8 = Path.Combine(storagePath, videoId.ToString(), "master.m3u8");
 
             if (!File.Exists(m3U8)) return Results.NotFound();
 

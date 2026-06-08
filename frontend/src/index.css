@@ -35,8 +35,9 @@ body {
 }
 
 /* Remove default Vite styles that conflict with our design */
-h1 {
+* {
   margin: 0;
+  padding: 0;
 }
 
 button {
