@@ -18,14 +18,14 @@ namespace OnlyFrames.Server.Infrastructure;
 /// </summary>
 public class TranscodeQueue : BackgroundService
 {
-    private readonly Channel<(Guid VideoId, string InputPath)> _queue =
-        Channel.CreateUnbounded<(Guid, string)>();
+    private readonly Channel<(Guid VideoId, string InputPath, string? SubtitlePath)> _queue =
+        Channel.CreateUnbounded<(Guid, string, string?)>();
     private readonly TranscodingService _transcoder;
     private readonly ILogger<TranscodeQueue> _logger;
-    private readonly IServiceScopeFactory _scopeFactory; // Fabryka do tworzenia dostępu do bazy
-
+    private readonly IServiceScopeFactory _scopeFactory;
+ 
     public TranscodeQueue(
-        TranscodingService transcoder, 
+        TranscodingService transcoder,
         ILogger<TranscodeQueue> logger,
         IServiceScopeFactory scopeFactory)
     {
@@ -33,21 +33,23 @@ public class TranscodeQueue : BackgroundService
         _logger = logger;
         _scopeFactory = scopeFactory;
     }
-
+ 
     /// <summary>
     /// Adds a video to the transcode queue. Returns immediately, processing is asynchronous.
     /// This method is to be used from video upload code.
     /// </summary>
     /// <param name="videoId">ID of the video record. Used as output directory name.</param>
     /// <param name="inputPath">Absolute path to the raw uploaded video file.</param>
+    /// <param name="subtitlePath">Optional absolute path to a subtitle file (.vtt, .srt, .ass). Attached after transcoding.</param>
     /// <example>
     /// <code>
     /// queue.Enqueue(videoId, "/media/videos/raw/upload.mp4");
+    /// queue.Enqueue(videoId, "/media/videos/raw/upload.mp4", "/media/videos/{id}/subtitles.vtt");
     /// </code>
     /// </example>
-    public void Enqueue(Guid videoId, string inputPath) =>
-        _queue.Writer.TryWrite((videoId, inputPath));
-
+    public void Enqueue(Guid videoId, string inputPath, string? subtitlePath = null) =>
+        _queue.Writer.TryWrite((videoId, inputPath, subtitlePath));
+ 
     /// <summary>
     /// Continuously processes queued transcode jobs until the app shuts down.
     /// Jobs run sequentially. Failed jobs are logged and skipped.
@@ -55,38 +57,40 @@ public class TranscodeQueue : BackgroundService
     /// <param name="ct">Cancellation token passed through to all FFmpeg operations.</param>
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        await foreach (var (videoId, inputPath) in _queue.Reader.ReadAllAsync(ct))
+        await foreach (var (videoId, inputPath, subtitlePath) in _queue.Reader.ReadAllAsync(ct))
         {
             try
             {
                 _logger.LogInformation("Transcoding started for {VideoId}", videoId);
-                
-                // 1. FFmpeg robi swoją magię (HLS + Miniaturka)
+ 
                 await _transcoder.TranscodeToHlsAsync(videoId, inputPath, ct);
-                
-                // 2. Sukces! Zmieniamy status w bazie na Ready
+ 
+                if (subtitlePath != null)
+                {
+                    _logger.LogInformation("Attaching subtitles for {VideoId}", videoId);
+                    await _transcoder.AttachExternalSubtitlesAsync(videoId, subtitlePath, ct);
+                }
+ 
                 await UpdateStatusInDatabaseAsync(videoId, VideoStatus.Ready);
-                
+ 
                 _logger.LogInformation("Transcoding done for {VideoId}", videoId);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Transcode failed for {VideoId}", videoId);
-                
-                // 3. Coś poszło nie tak (np. zły format pliku) -> status Failed
                 await UpdateStatusInDatabaseAsync(videoId, VideoStatus.Failed);
             }
         }
     }
-
+ 
     /// <summary>
-    /// Pomocnicza metoda tworząca krótki cykl życia DbContextu, aby zaktualizować status filmu.
+    /// Helper method creating short DbContext lifespan, used to update upload status.
     /// </summary>
     private async Task UpdateStatusInDatabaseAsync(Guid videoId, VideoStatus newStatus)
     {
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        
+ 
         var video = await dbContext.Videos.FindAsync(videoId);
         if (video != null)
         {
