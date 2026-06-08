@@ -1,4 +1,4 @@
-localhost {
+szachuz.lol {
     # ── /api/* — internal only, no public access ─────────────────────────────
     handle /api/* {
         reverse_proxy api:8080 {
@@ -35,7 +35,8 @@ localhost {
         output file /var/log/caddy/access.log
     }
 }
-szachuz.lol {
+
+localhost {
     # ── /api/* — internal only, no public access ─────────────────────────────
     handle /api/* {
         reverse_proxy api:8080 {
