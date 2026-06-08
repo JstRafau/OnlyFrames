@@ -1,11 +1,15 @@
 const BASE = "/api";
 
+// ==========================================
+// 1. FUNKCJE WIDEO (Twoje, nienaruszone)
+// ==========================================
+
 export interface Video {
     id: string;
     title: string;
-    description?: string; 
+    description?: string;
     isPublic: boolean;
-    status: "processing" | "ready" | "failed"; 
+    status: "processing" | "ready" | "failed";
     createdAt: string;
     userId: string;
 }
@@ -34,7 +38,6 @@ export async function uploadVideo(
         form.append("title", title);
         form.append("description", description);
         form.append("isPublic", String(isPublic));
-
         form.append("videoFile", videoFile);
 
         if (subtitleFile) {
@@ -56,9 +59,7 @@ export async function uploadVideo(
         };
 
         xhr.onerror = () => reject(new Error("Network error during upload"));
-
-        xhr.withCredentials = true;
-
+        xhr.withCredentials = true; // To wysyła ciasteczka!
         xhr.open("POST", `${BASE}/videos/upload`);
         xhr.send(form);
     });
@@ -84,3 +85,56 @@ export async function getCurrentUser(): Promise<{ id: string } | null> {
 export function streamUrl(id: string): string {
     return `${BASE}/videos/stream/${id}/`;
 }
+
+// ==========================================
+// 2. NOWE FUNKCJE PROFILU (Z ciasteczkami)
+// ==========================================
+
+export interface UserProfile {
+    username: string;
+    avatarUrl: string | null;
+}
+
+export const getUserProfile = async (): Promise<UserProfile> => {
+    const res = await fetch(`${BASE}/profile/info`, {
+        credentials: "include"
+    });
+    if (!res.ok) throw new Error("Błąd pobierania profilu");
+    return res.json();
+};
+
+export const changeUsername = async (newUsername: string) => {
+    const res = await fetch(`${BASE}/profile/change-username`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: "include",
+        body: JSON.stringify({ newUsername })
+    });
+    if (!res.ok) throw new Error("Ta nazwa użytkownika jest już zajęta lub niepoprawna.");
+    return res.json();
+};
+
+export const changePassword = async (data: any) => {
+    const res = await fetch(`${BASE}/profile/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: "include",
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error("Obecne hasło jest niepoprawne lub nowe jest za słabe.");
+    return res.json();
+};
+
+export const uploadAvatar = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(`${BASE}/profile/avatar`, {
+        method: 'POST',
+        credentials: "include", // Ciasteczko logowania
+        body: formData          // Zauważ brak Content-Type (przeglądarka ustawi to sama pod plik!)
+    });
+
+    if (!res.ok) throw new Error("Błąd wgrywania pliku.");
+    return res.json();
+};

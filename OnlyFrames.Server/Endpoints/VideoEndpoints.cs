@@ -6,10 +6,10 @@ using OnlyFrames.Server.Models;
 using OnlyFrames.Server.Infrastructure;
 
 namespace OnlyFrames.Server.Endpoints;
-
 /// <summary>
 /// Provides extension methods to map public and authenticated video management endpoints.
 /// </summary>
+
 public static class VideoEndpoints
 {
     /// <summary>
@@ -20,11 +20,12 @@ public static class VideoEndpoints
     {
         var publicGroup = app.MapGroup("/api/videos");
 
-        
-        
-        publicGroup.MapGet("/all", async (AppDbContext dbContext) =>
+        publicGroup.MapGet("/all", async (AppDbContext dbContext, ClaimsPrincipal userPrincipal) =>
         {
+            var currentUserId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
             var videos = await dbContext.Videos
+                .Where(v => v.IsPublic || (currentUserId != null && v.UserId == currentUserId))
                 .Select(v => new
                 {
                     v.Id,
@@ -40,9 +41,6 @@ public static class VideoEndpoints
             return Results.Ok(videos);
         });
 
-
-        
-        
         var authGroup = app.MapGroup("/api/videos").RequireAuthorization();
 
         authGroup.MapPost("/upload", async (
@@ -69,7 +67,9 @@ public static class VideoEndpoints
                 return Results.BadRequest("Invalid video format.");
 
             var videoId = Guid.NewGuid();
-            var storagePath = config["Storage:VideosPath"] ?? "/media/videos";
+
+            var defaultStoragePath = Path.Combine(Directory.GetCurrentDirectory(), "media", "videos");
+            var storagePath = config["Storage:VideosPath"] ?? defaultStoragePath;
             var videoDir = Path.Combine(storagePath, videoId.ToString());
 
             Directory.CreateDirectory(videoDir);
@@ -109,8 +109,6 @@ public static class VideoEndpoints
             return Results.Ok(new { Message = "Video upload started.", VideoId = videoId });
         }).DisableAntiforgery();
 
-        
-        
         app.MapGet("/api/me", (ClaimsPrincipal user) =>
         {
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -118,8 +116,6 @@ public static class VideoEndpoints
     
             return Results.Ok(new { Id = userId });
         }).RequireAuthorization();
-        
-        
         
         authGroup.MapDelete("/remove/{id:guid}", async (
             Guid id,
@@ -139,7 +135,8 @@ public static class VideoEndpoints
             dbContext.Videos.Remove(video);
             await dbContext.SaveChangesAsync();
 
-            var storagePath = config["Storage:VideosPath"] ?? "/media/videos";
+            var defaultStoragePath = Path.Combine(Directory.GetCurrentDirectory(), "media", "videos");
+            var storagePath = config["Storage:VideosPath"] ?? defaultStoragePath;
             var videoDir = Path.Combine(storagePath, id.ToString());
 
             if (Directory.Exists(videoDir))

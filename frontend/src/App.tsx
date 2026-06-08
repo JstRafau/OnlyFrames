@@ -6,11 +6,13 @@ import Register from './pages/Register';
 import Library from './pages/Library';
 import Upload from './pages/Upload';
 import Player from './pages/Player';
+import Account from "./pages/Account";
+
 
 export default function App() {
     return (
         <Router>
-            <div className="app-container bg-gray-50 flex flex-col">
+            <div className="app-container">
                 <header className="app-header">
                         <Link to="/">
                             OnlyFrames
@@ -21,6 +23,9 @@ export default function App() {
                             </Link>
                             <Link to="/upload">
                                 Wgraj Wideo
+                            </Link>
+                            <Link to="/account">
+                                Moje konto
                             </Link>
                             <Link to="/login">
                                 Logowanie
@@ -39,9 +44,10 @@ export default function App() {
                         <Route path="/library" element={<Library />} />
                         <Route path="/upload" element={<Upload />} />
                         <Route path="/player/:videoGuid" element={<Player />} />
+                        <Route path="/account" element={<Account />} />
 
                         <Route path="*" element={
-                            <div className="text-center mt-20 text-xl text-gray-600">
+                            <div>
                                 Nie znaleziono strony (404)
                             </div>
                         } />
