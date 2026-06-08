@@ -65,7 +65,7 @@ export default function Upload() {
             );
 
             setStatus("success");
-            setTimeout(() => navigate("/"), 2000);
+            setTimeout(() => navigate("/library"), 2000);
         } catch (error: any) {
             setStatus("error");
             setErrorMessage(error.message || "Wystąpił błąd podczas wgrywania pliku.");

@@ -57,39 +57,37 @@ public static class VideoEndpoints
         {
             var user = await userManager.GetUserAsync(userPrincipal);
             if (user == null) return Results.Unauthorized();
-
+ 
             if (videoFile.Length == 0)
                 return Results.BadRequest("Video file is required.");
-
+ 
             var allowedVideoExt = new[] { ".mp4", ".webm", ".mkv", ".mov" };
             var videoExt = Path.GetExtension(videoFile.FileName).ToLowerInvariant();
             if (!allowedVideoExt.Contains(videoExt))
                 return Results.BadRequest("Invalid video format.");
-
+ 
             var videoId = Guid.NewGuid();
-
             var defaultStoragePath = Path.Combine(Directory.GetCurrentDirectory(), "media", "videos");
             var storagePath = config["Storage:VideosPath"] ?? defaultStoragePath;
             var videoDir = Path.Combine(storagePath, videoId.ToString());
-
             Directory.CreateDirectory(videoDir);
-
+ 
             var rawVideoPath = Path.Combine(videoDir, $"raw{videoExt}");
             using (var stream = new FileStream(rawVideoPath, FileMode.Create))
-            {
                 await videoFile.CopyToAsync(stream);
-            }
-
+ 
+            string? subPath = null;
             if (subtitleFile != null && subtitleFile.Length > 0)
             {
                 var subExt = Path.GetExtension(subtitleFile.FileName).ToLowerInvariant();
-                if (subExt != ".vtt") return Results.BadRequest("Subtitles must be in .VTT format.");
-
-                var subPath = Path.Combine(videoDir, $"subtitles{subExt}");
+                if (subExt is not (".vtt" or ".srt" or ".ass"))
+                    return Results.BadRequest("Subtitle must be .vtt, .srt, or .ass.");
+ 
+                subPath = Path.Combine(videoDir, $"subtitles{subExt}");
                 using var stream = new FileStream(subPath, FileMode.Create);
                 await subtitleFile.CopyToAsync(stream);
             }
-
+ 
             var newVideo = new Video
             {
                 Id = videoId,
@@ -100,12 +98,11 @@ public static class VideoEndpoints
                 CreatedAt = DateTime.UtcNow,
                 UserId = user.Id
             };
-
             dbContext.Videos.Add(newVideo);
             await dbContext.SaveChangesAsync();
-
-            transcodeQueue.Enqueue(videoId, rawVideoPath);
-
+ 
+            transcodeQueue.Enqueue(videoId, rawVideoPath, subPath);
+ 
             return Results.Ok(new { Message = "Video upload started.", VideoId = videoId });
         }).DisableAntiforgery();
 
