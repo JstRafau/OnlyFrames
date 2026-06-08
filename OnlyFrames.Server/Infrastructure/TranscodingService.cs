@@ -1,4 +1,6 @@
 using System.Text;
+using CliWrap;
+using CliWrap.Buffered;
 using Xabe.FFmpeg;
 
 namespace OnlyFrames.Server.Infrastructure;
@@ -88,26 +90,32 @@ public class TranscodingService
 
         if (sourceHeight >= 360)
         {
-            await BuildHlsConversion(inputPath, videoStream, audioStream, outputDir, "360p", 640, 360, ct);
+            await BuildHlsConversion(videoStream, audioStream, outputDir, "360p", 640, 360, ct);
             generatedStreams.Add(("360p", 800_000, 640, 360));
         }
         if (sourceHeight >= 720)
         {
-            await BuildHlsConversion(inputPath, videoStream, audioStream, outputDir, "720p", 1280, 720, ct);
+            await BuildHlsConversion(videoStream, audioStream, outputDir, "720p", 1280, 720, ct);
             generatedStreams.Add(("720p", 3_000_000, 1280, 720));
         }
-        if (sourceHeight >= 1080)
+        if (sourceHeight >= 5080)
         {
-            await BuildHlsConversion(inputPath, videoStream, audioStream, outputDir, "1080p", 1920, 1080, ct);
+            await BuildHlsConversion(videoStream, audioStream, outputDir, "1080p", 1920, 1080, ct);
             generatedStreams.Add(("1080p", 6_000_000, 1920, 1080));
         }
-        if (sourceHeight >= 2160)
+        if (sourceHeight >= 5160)
         {
-            await BuildHlsConversion(inputPath, videoStream, audioStream, outputDir, "4k", 3840, 2160, ct);
+            await BuildHlsConversion(videoStream, audioStream, outputDir, "4k", 3840, 2160, ct);
             generatedStreams.Add(("4k", 20_000_000, 3840, 2160));
         }
+        
+        //var firstSegment = Directory.GetFiles(outputDir, "*_0000.ts").FirstOrDefault();
+        //long mpegTsOffset = 0;
+        //if (firstSegment is not null)
+        //{
+        //    mpegTsOffset = await GetMpegTsOffsetAsync(firstSegment, ct);
+        //}
 
-        // extract embedded subtitles if present
         if (subtitleStream != null)
         {
             var vttPath = Path.Combine(outputDir, "captions.vtt");
@@ -117,7 +125,7 @@ public class TranscodingService
                 .SetOverwriteOutput(true)
                 .Start(ct);
 
-            await GenerateSubtitleM3U8Async(outputDir, "captions.vtt", "captions.m3u8", ct);
+            await GenerateSubtitleM3U8Async(outputDir, "captions.vtt", "captions.m3u8"/*, mpegTsOffset*/, ct);
         }
 
         var hasSubtitles = File.Exists(Path.Combine(outputDir, "captions.m3u8"));
@@ -155,8 +163,15 @@ public class TranscodingService
                 .SetOutput(vttPath)
                 .SetOverwriteOutput(true)
                 .Start(ct);
+        
+        //var firstSegment = Directory.GetFiles(outputDir, "*_0000.ts").FirstOrDefault();
+        //long mpegTsOffset = 0;
+        //if (firstSegment is not null)
+        //{
+        //    mpegTsOffset = await GetMpegTsOffsetAsync(firstSegment, ct);
+        //}
 
-        await GenerateSubtitleM3U8Async(outputDir, "captions.vtt", "captions.m3u8", ct);
+        await GenerateSubtitleM3U8Async(outputDir, "captions.vtt", "captions.m3u8"/*, mpegTsOffset*/, ct);
 
         // rebuild master with subtitles — parse existing quality streams from master.m3u8
         var masterPath = Path.Combine(outputDir, "master.m3u8");
@@ -182,17 +197,22 @@ public class TranscodingService
     /// Wraps a single WebVTT file in an HLS subtitle playlist.
     /// Required because HLS players expect subtitle tracks as .m3u8 references.
     /// </summary>
+    /// <param name="outputDir">Video output directory.</param>
+    /// <param name="vttFile">VTT filename (not full path), e.g. <c>captions.vtt</c>.</param>
+    /// <param name="m3U8File">Output playlist filename, e.g. <c>captions.m3u8</c>.</param>
+    /// <param name="mpegTsOffset">Video offset used to sync captions with video.</param>
+    /// <param name="ct">Cancellation token passed through to all FFmpeg operations.</param>
     private static async Task GenerateSubtitleM3U8Async(
-        string outputDir, string vttFile, string m3U8File, CancellationToken ct)
+        string outputDir, string vttFile, string m3U8File/*, long mpegTsOffset*/, CancellationToken ct)
     {
-        var content = $"""
-            #EXTM3U
-            #EXT-X-TARGETDURATION:99999
-            #EXT-X-VERSION:3
-            #EXTINF:99999,
-            {vttFile}
-            #EXT-X-ENDLIST
-            """;
+        var content = "#EXTM3U\n" +
+                      "#EXT-X-TARGETDURATION:99999\n" +
+                      "#EXT-X-VERSION:3\n" +
+                      "#EXT-X-MEDIA-SEQUENCE:0\n" + 
+                   /* $"X-TIMESTAMP-MAP:MPEGTS={mpegTsOffset},LOCAL=00:00:00.000\n" + */
+                      "#EXTINF:99999,\n" +
+                      $"{vttFile}\n" +
+                      "#EXT-X-ENDLIST\n";
         await File.WriteAllTextAsync(Path.Combine(outputDir, m3U8File), content, ct);
     }
 
@@ -200,6 +220,9 @@ public class TranscodingService
     /// Generates <c>master.m3u8</c> — the HLS entry point served to the player.
     /// References all quality variants and optionally a subtitle track.
     /// </summary>
+    /// <param name="outputDir">Video output directory.</param>
+    /// <param name="streams">Quality variants to include, in ascending order.</param>
+    /// <param name="hasSubtitles">When true, references <c>captions.m3u8</c> as subtitle track.</param>
     private static void GenerateMasterPlaylist(
         string outputDir,
         List<(string label, int bandwidth, int width, int height)> streams,
@@ -225,17 +248,16 @@ public class TranscodingService
     /// Converts a single video stream to HLS at the given resolution.
     /// Forces yuv420p (8-bit) and H.264 High profile for browser compatibility.
     /// 6-second segments, VOD playlist type.
-    /// <param name="input">Absolute path to raw uploaded video file.</param>
-    /// <param name="video"></param>
-    /// <param name="audio"></param>
-    /// <param name="outputDir">Used as output directory name under storage path.</param>
-    /// <param name="label">Video quality label, e.g. 360p, 4K, etc.</param>
-    /// <param name="width">Video width</param>
-    /// <param name="height">Video height</param>
-    /// <param name="ct">Cancellation token passed through to all FFmpeg operations.</param>
     /// </summary>
+    /// <param name="video">Source video stream from FFmpeg media info.</param>
+    /// <param name="audio">Source audio stream, or null if none.</param>
+    /// <param name="outputDir">Video output directory.</param>
+    /// <param name="label">Quality label used in filenames, e.g. <c>720p</c>, <c>4k</c>.</param>
+    /// <param name="width">Target width in pixels.</param>
+    /// <param name="height">Target height in pixels.</param>
+    /// <param name="ct">Cancellation token passed through to all FFmpeg operations.</param>
     private static async Task BuildHlsConversion(
-        string input, IVideoStream video, IAudioStream? audio,
+        IVideoStream video, IAudioStream? audio,
         string outputDir, string label, int width, int height,
         CancellationToken ct)
     {
@@ -249,6 +271,8 @@ public class TranscodingService
             .AddParameter("-level:v 4.0")
             .AddParameter("-hls_time 6")
             .AddParameter("-hls_playlist_type vod")
+            .AddParameter("-muxpreload 0")
+            .AddParameter("-muxdelay 0")
             .AddParameter($"-hls_segment_filename \"{segmentPattern}\"")
             .SetOutput(outputM3U8)
             .SetOverwriteOutput(true);
@@ -262,15 +286,39 @@ public class TranscodingService
     /// <summary>
     /// Captures a thumbnail at the 5-second mark of the video.
     /// Output: <c>thumb.jpg</c> in the video output directory.
-    /// <param name="input">Absolute path to raw uploaded video file.</param>
-    /// <param name="outputDir">Used as output directory name under storage path.</param>
-    /// <param name="ct">Cancellation token passed through to all FFmpeg operations.</param>
     /// </summary>
+    /// <param name="input">Absolute path to raw uploaded video file.</param>
+    /// <param name="outputDir">Video output directory.</param>
+    /// <param name="ct">Cancellation token passed through to all FFmpeg operations.</param>
     private static async Task GenerateThumbnailAsync(string input, string outputDir, CancellationToken ct)
     {
         var thumbPath = Path.Combine(outputDir, "thumb.jpg");
         var conversion = await FFmpeg.Conversions.FromSnippet.Snapshot(
             input, thumbPath, TimeSpan.FromSeconds(5));
         await conversion.Start(ct);
+    }
+    
+    /// <summary>
+    /// Reads the PTS start time from a .ts segment and converts to MPEG-TS clock units (90kHz).
+    /// Used to generate accurate X-TIMESTAMP-MAP for subtitle sync in HLS.
+    /// </summary>
+    /// <param name="segmentPath">Absolute path to a .ts segment file, typically the first one.</param>
+    /// <param name="ct">Cancellation token passed through to all FFmpeg operations.</param>
+    /// <returns>PTS offset in 90kHz MPEG-TS units, e.g. 133507 for ~1.48s offset.</returns>
+    private static async Task<long> GetMpegTsOffsetAsync(string segmentPath, CancellationToken ct)
+    {
+        var result = await Cli.Wrap("ffprobe")
+            .WithArguments($"-v quiet -show_entries stream=start_time -of csv \"{segmentPath}\"")
+            .ExecuteBufferedAsync(ct);
+
+        var firstTime = result.StandardOutput
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(l => l.Split(',').LastOrDefault())
+            .Where(v => double.TryParse(v, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out _))
+            .Select(v => double.Parse(v!, System.Globalization.CultureInfo.InvariantCulture))
+            .FirstOrDefault();
+
+        return (long)(firstTime * 90000);
     }
 }
