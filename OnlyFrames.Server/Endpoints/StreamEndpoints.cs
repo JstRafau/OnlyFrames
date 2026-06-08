@@ -29,6 +29,7 @@ public static class StreamEndpoints
             AppDbContext dbContext,
             ClaimsPrincipal userPrincipal) =>
         {
+
             var video = await dbContext.Videos.FindAsync(videoId);
             if (video == null) return Results.NotFound("Video not found.");
 
@@ -44,7 +45,8 @@ public static class StreamEndpoints
             var defaultStoragePath = Path.Combine(Directory.GetCurrentDirectory(), "media", "videos");
             var storagePath = config["Storage:VideosPath"] ?? defaultStoragePath;
 
-            var m3U8 = Path.Combine(storagePath, videoId.ToString(), "720p.m3u8");
+            var m3U8 = Path.Combine(config["Storage:VideosPath"]!, videoId.ToString(), "master.m3u8");
+
             if (!File.Exists(m3U8)) return Results.NotFound();
 
             return Results.File(m3U8, "application/vnd.apple.mpegurl");
@@ -87,9 +89,10 @@ public static class StreamEndpoints
 
             string contentType = ext switch
             {
-                ".ts" => "video/mp2t",
+                ".ts"  => "video/mp2t",
                 ".vtt" => "text/vtt",
-                _ => "application/vnd.apple.mpegurl"
+                ".jpg" => "image/jpg",
+                _      => "application/vnd.apple.mpegurl"
             };
 
             return Results.File(fullPath, contentType);
