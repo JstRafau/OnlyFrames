@@ -46,7 +46,7 @@ Projekt w pełni wykorzystuje CLI .NET Aspire, które automatycznie konfiguruje 
 
 1. **Sklonuj repozytorium:**
    ```bash
-   git clone [https://github.com/JstRafau/OnlyFrames.git](https://github.com/JstRafau/OnlyFrames.git)
+   git clone https://github.com/JstRafau/OnlyFrames.git
    cd OnlyFrames
 
 2. **Zainstaluj CLI .NET Aspire:**
