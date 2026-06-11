@@ -52,7 +52,7 @@ Projekt w pełni wykorzystuje CLI .NET Aspire, które automatycznie konfiguruje 
 2. **Zainstaluj CLI .NET Aspire:**
 
    ```bash
-   irm [https://aspire.dev/install.ps1](https://aspire.dev/install.ps1) | iex
+   irm https://aspire.dev/install.ps1 | iex
    dotnet tool install -g Aspire.Cli
    ```
 
